@@ -501,6 +501,7 @@ def _format_tool_choice(
 
 
 def _extract_tool_calls(anthropic_content: List[dict]) -> List[ToolCall]:
+    print(anthropic_content)
     tool_calls = []
     for block in anthropic_content:
         if block["type"] == "tool_use":
