@@ -219,3 +219,19 @@ def convert_to_anthropic_tool(
             description=formatted["description"],
             input_schema=formatted["parameters"],
         )
+
+def convert_to_meta_tool(
+    tool: Union[Dict[str, Any], TypeBaseModel, Callable, BaseTool],
+) -> AnthropicTool:
+    # already in Anthropic tool format
+    if isinstance(tool, dict) and all(
+        k in tool for k in ("name", "description", "input_schema")
+    ):
+        return AnthropicTool(tool)  # type: ignore
+    else:
+        formatted = convert_to_openai_tool(tool)["function"]
+        return AnthropicTool(
+            name=formatted["name"],
+            description=formatted["description"],
+            input_schema=formatted["parameters"],
+        )

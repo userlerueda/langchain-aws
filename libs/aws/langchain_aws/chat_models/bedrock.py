@@ -1,3 +1,4 @@
+import logging
 import re
 from collections import defaultdict
 from operator import itemgetter
@@ -43,6 +44,7 @@ from langchain_aws.function_calling import (
     ToolsOutputParser,
     _lc_tool_calls_to_anthropic_tool_use_blocks,
     convert_to_anthropic_tool,
+    convert_to_meta_tool,
     get_system_message,
 )
 from langchain_aws.llms.bedrock import (
@@ -53,6 +55,8 @@ from langchain_aws.utils import (
     get_num_tokens_anthropic,
     get_token_ids_anthropic,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _convert_one_message_to_text_llama(message: BaseMessage) -> str:
@@ -677,6 +681,28 @@ class ChatBedrock(BaseChatModel, BedrockBase):
                 # add tools to the system prompt, the old way
                 system_formatted_tools = get_system_message(formatted_tools)
                 self.set_system_prompt_with_tools(system_formatted_tools)
+
+        # If model is meta
+        elif self._get_provider() == "meta":
+            formatted_tools = [convert_to_meta_tool(tool) for tool in tools]
+
+            # true if the model is a claude 3 model
+            if "llama3-1" in self._get_model() or "llama3-2" in self._get_model():
+                if not tool_choice:
+                    pass
+                elif isinstance(tool_choice, dict):
+                    kwargs["tool_choice"] = tool_choice
+                elif isinstance(tool_choice, str) and tool_choice in ("any", "auto"):
+                    kwargs["tool_choice"] = {"type": tool_choice}
+                elif isinstance(tool_choice, str):
+                    kwargs["tool_choice"] = {"type": "tool", "name": tool_choice}
+                else:
+                    raise ValueError(
+                        f"Unrecognized 'tool_choice' type {tool_choice=}."
+                        f"Expected dict, str, or None."
+                    )
+                return self.bind(tools=formatted_tools, **kwargs)
+
         return self
 
     def with_structured_output(
