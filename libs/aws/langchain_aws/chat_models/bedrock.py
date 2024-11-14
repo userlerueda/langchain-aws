@@ -654,6 +654,7 @@ class ChatBedrock(BaseChatModel, BedrockBase):
             return self._as_converse.bind_tools(
                 tools, tool_choice=tool_choice, **kwargs
             )
+        print(f"provider={self._get_provider()}")
         if self._get_provider() == "anthropic":
             formatted_tools = [convert_to_anthropic_tool(tool) for tool in tools]
 
